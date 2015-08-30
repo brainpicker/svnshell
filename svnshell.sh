@@ -65,19 +65,19 @@ _update_prompt () {
 		fi
 
         if [ "$branch_status" ] ; then
-            status_formatted="[$REDBOLD$branch_status$RESETCOLOR$RESETCOLOR]"
-            branch="$REDBOLD$branch$RESETCOLOR $status_formatted $branch_revision "
+            status_formatted="$RESETCOLOR[$REDBOLD$branch_status$RESETCOLOR]"
+            branch="$REDBOLD$branch $status_formatted $BLUE$branch_revision$RESETCOLOR "
         else
-            branch="$GREEN$branch$RESETCOLOR $branch_revision "
+            branch="$GREEN$branch$BLUE $branch_revision "
         fi
 
-	    full_prompt="$_prompt $branch$p"
-	    export PS1="\[\e]0;\u@\h:\w\\a\]$full_prompt "
+	    full_prompt="$_prompt $branch"
 	else
 		export SVNSHELL_BRANCH_CURRENT=
 		export SVNSHELL_BRANCH_PREV=
-	    export PS1=$PS1_ORIGINAL
+	    full_prompt="$_prompt "
     fi
+    export PS1="$full_prompt $BLUE[\#] → $RESETCOLOR"
 
 }
 
