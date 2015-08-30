@@ -2,62 +2,43 @@
 #
 # SVN shell : improved bash with svn information
 #
-# Alex Gavrishev <alex.gavrishev@gmail.com>
-#
+# Original: Alex Gavrishev <alex.gavrishev@gmail.com>
+# Updated: Gady Barak <gadybarak@gmail.com>
 
 _update_prompt () {
     ## Save $? early, we'll need it later
     local exit="$?"
 
     ## define some colors
-    local red="31";
-    local green="32";
-    local yellow="33";
-    local purple="35";
-    local cyan="36";
-    local white="37";
-
-    local pre="\[\e[";
-    local suf="\]";
-
-    local e_green="${pre}0;${green}m$suf";
-    local e_purple="${pre}0;${purple}m$suf";
-    local e_cyan="${pre}0;${cyan}m$suf";
-    local e_white="${pre}0;${white}m$suf";
-    local e_bred="$pre$red;1m$suf";
-    local e_byellow="$pre$yellow;1m$suf";
-
-    local e_normal="\[\e[0;0m\]"
+    local BLACK="\[\033[0;30m\]"
+    local BLACKBOLD="\[\033[1;30m\]"
+    local RED="\[\033[0;31m\]"
+    local REDBOLD="\[\033[1;31m\]"
+    local GREEN="\[\033[0;32m\]"
+    local GREENBOLD="\[\033[1;32m\]"
+    local YELLOW="\[\033[0;33m\]"
+    local YELLOWBOLD="\[\033[1;33m\]"
+    local BLUE="\[\033[0;34m\]"
+    local BLUEBOLD="\[\033[1;34m\]"
+    local PURPLE="\[\033[0;35m\]"
+    local PURPLEBOLD="\[\033[1;35m\]"
+    local CYAN="\[\033[0;36m\]"
+    local CYANBOLD="\[\033[1;36m\]"
+    local WHITE="\[\033[0;37m\]"
+    local WHITEBOLD="\[\033[1;37m\]"
+    local RESETCOLOR="\[\e[00m\]"
 
     local arrow_up=`echo -e "\xe2\x86\x91"`
     local arrow_down=`echo -e "\xe2\x86\x93"`
 
     ## Initial prompt
-    _prompt="[$e_green\h$e_normal:$e_cyan\w$e_normal]";
-
-    ## Color current user
-    local u;
-    local p;
-    if [ "$UID" = "0" ]; then
-        u="$e_bred\u$e_normal ";
-        p="#"; 
-    else
-        u="$e_purple\u$e_normal ";
-        p="\$";
-    fi
-
-    ## Color based on exit code
-    if [ "$exit" = "0" ]; then 
-        p="$e_green$p$e_normal";
-    else
-        p="$e_bred$p$e_normal";
-    fi
+    _prompt="\n$RED\u $PURPLE@ $GREEN\w $RESETCOLOR$GREENBOLD";
 
     ## Color git status if any
     branch=`svn info 2>/dev/null | grep "Relative URL"`
-    if [ -n "$branch" ] ; then 
+    if [ -n "$branch" ] ; then
 		# strip beginning
-		prefix='Relative URL: ^/' 
+		prefix='Relative URL: ^/'
 		branch=${branch#$prefix}
 
 		if  [ "$branch" != "$SVNSHELL_BRANCH_CURRENT" ] ;
@@ -74,7 +55,7 @@ _update_prompt () {
 		then
 		    branch=${branch#'tags/'}
 		fi
-		
+
 		svn_version=`svnversion`
         branch_revision=$svn_version
 		branch_status=`svn status -q | cut -c 1-7 | grep -ve '^---' | grep --color=never -o . | sort -u | tr -d " \n"`
@@ -82,15 +63,15 @@ _update_prompt () {
 		then
 		    branch_revision=${BASH_REMATCH[1]}
 		fi
-		
+
         if [ "$branch_status" ] ; then
-            status_formatted="[$e_bred$branch_status$e_normal$e_normal]"
-            branch="$e_bred$branch$e_normal $status_formatted $branch_revision "
+            status_formatted="[$REDBOLD$branch_status$RESETCOLOR$RESETCOLOR]"
+            branch="$REDBOLD$branch$RESETCOLOR $status_formatted $branch_revision "
         else
-            branch="$e_green$branch$e_normal $branch_revision "
+            branch="$GREEN$branch$RESETCOLOR $branch_revision "
         fi
 
-	    full_prompt="$_prompt $u$branch$p"
+	    full_prompt="$_prompt $branch$p"
 	    export PS1="\[\e]0;\u@\h:\w\\a\]$full_prompt "
 	else
 		export SVNSHELL_BRANCH_CURRENT=
@@ -102,7 +83,7 @@ _update_prompt () {
 
 function _param_to_branch() {
 	local branch=$1
-    if [ -n "$branch" ] ; then 
+    if [ -n "$branch" ] ; then
 		branch=${branch%/}
 		if [ "$branch" == "trunk" ]; then
 			branch="trunk"
@@ -130,7 +111,7 @@ function _extract_branch_name() {
 
 function _switch() {
 	local branch=$1
-    if [ -n "$branch" ] ; then 
+    if [ -n "$branch" ] ; then
 		if [ "$branch" == "-" ]; then
 			if  [ -n "$SVNSHELL_BRANCH_PREV" ] && [ "$SVNSHELL_BRANCH_CURRENT" != "$SVNSHELL_BRANCH_PREV" ];
 			then
@@ -148,10 +129,10 @@ function _switch() {
 function _branch() {
 	local branch=$1
 	local message=$2
-    if [ -z "$branch" ] ; then 
+    if [ -z "$branch" ] ; then
 		svn ls ^/branches/ --verbose | sort
 	else
-		if [ -n "$message" ] ; then 
+		if [ -n "$message" ] ; then
 			svn copy . ^/branches/"$branch" -m "$message"
 		else
 			svn copy . ^/branches/"$branch"
@@ -169,7 +150,7 @@ function _merge_branch() {
 	local banch=$(_param_to_branch $1)
 	if [ -z "$banch" ] ; then
 		echo "mb <BranchName>"
-	else 
+	else
 		svn merge ^/"$banch" "${*:2}"
 		local RETVAL=$?
 		[ $RETVAL -eq 0 ] && echo "Commit hint: ci -m \"Merge from $banch\""
@@ -182,27 +163,27 @@ function _reintegrate() {
 
 function _mergelog() {
 	local branch=$(_param_to_branch $1)
-    if [ -z "$branch" ] ; then 
+    if [ -z "$branch" ] ; then
 		branch=$SVNSHELL_BRANCH_CURRENT
 	fi
 	local shortbranch=$(_extract_branch_name $branch)
-	
+
 	local message=
 	local author=
 	local rev=
 	local date=
 	local state=0
-	
+
 	svn log --limit 10 ^/$branch | while read line
 	do
 		if [[ "$line" == ---* ]]; then
-			
+
 			if [ "$state" -eq 3 ]; then
 				echo "------------- $author [$date] -----------------------------------"
 				echo "merge -c $rev ^/$branch ."
-				echo "commit -m \"Merge from $shortbranch: $message\"" 
+				echo "commit -m \"Merge from $shortbranch: $message\""
 			fi
-			
+
 			state=1
 		elif [ "$state" -eq 1 ]; then
 			# r6733 | alex | 2014-07-07 16:09:21 +0300 (Mon, 07 Jul 2014) | 1 line
@@ -231,7 +212,7 @@ function _mergelog() {
 	if [ "$state" -eq 3 ]; then
 		echo "------------- $author [$date] -----------------------------------"
 		echo "merge -c $rev ^/$branch ."
-		echo 'commit -m "Merge from $shortbransh: $message"' 
+		echo 'commit -m "Merge from $shortbransh: $message"'
 	fi
 }
 
